@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       target_select:
-        description: "選擇機型 (支援 K2P, K2P-NANO, K2P-USB 等)"
+        description: "選擇機型 (Target Model)"
         required: true
         type: choice
         options:
@@ -28,19 +28,40 @@ on:
           - XY-C1
         default: K2P
 
+      language_select:
+        description: "WebUI 語言設定 (Custom Language Selector)"
+        required: true
+        type: choice
+        default: 'English_Only'
+        options:
+          - English_Only
+          - CN (繁體中文)
+          - RU (Pусский)
+          - BR (Brazil)
+          - CZ (Česky)
+          - DA (Dansk)
+          - DE (Deutsch)
+          - ES (Español)
+          - FI (Finsk)
+          - FR (Français)
+          - NO (Norsk)
+          - PL (Polski)
+          - SV (Svensk)
+          - UK (Українська)
+      
       nanoversion:
-        description: "是否執行極限瘦身"
+        description: "開啟極限瘦身 (Nano Optimization)"
         type: boolean
         default: true
       
       customization:
-        description: '自定義配置 JSON'
+        description: '自訂預設配置 JSON (Custom Default Configuration Wi-Fi/Passwords/IP)'
         required: true
         type: string
         default: '{"lanip":"192.168.0.1","signaccount":"admin","signpassword":"admin","wifi2gssid":"Padavan","wifi2gpsk":"1234567890","wifi5gssid":"Padavan-5G","wifi5gpsk":"1234567890"}'
       
       toolchain_select:
-        description: "選擇編譯工具鏈"
+        description: "選擇編譯工具鏈 (Select toolchain)"
         required: true
         type: choice
         options:
@@ -51,7 +72,7 @@ on:
           - tsl0922/musl (gcc 13.2.0, musl 1.2.4)
           - tsl0922/uclibc (gcc 13.2.0, uClibc-ng 1.0.43)
           - hanwckf/uclibc-v1.1 (gcc 7.4.0, uclibc 1.0.32, SO_REUSEPORT patch)
-        default: Default (hanwckf/linux-4.4-v1.0, uclibc)
+        default: Padavan-NG (GCC 13+, uClibc-ng, ZSTD)
 
 jobs:
   build:
@@ -1390,62 +1411,6 @@ jobs:
           sudo rm -rf /toolchain-4.4.x
           sudo ln -s "$TOOLCHAIN_DIR" /toolchain-4.4.x
 
-      - name: 🕊️-Dave-Täht-Tribute-&-CAKE-Patch
-        run: |
-          # =======================================================
-          # 🕊️ In Memory of Dave Täht
-          # -------------------------------------------------------
-          # 🇹🇼：靈魂永駐，精神長存
-          # 🇺🇸：May his soul find eternal peace, and his spirit live on forever.
-          #
-          # 📢 SLOGAN: When you miss Dave, modprobe sch_cake!
-          # =======================================================
-          
-          echo "::group::Applying CAKE to Kernel Config"
-          
-          # 1. 取得目標機型的設定檔路徑
-          # 邏輯：trunk/configs/boards/{機型名稱}/kernel-4.4.x.config
-          TARGET_BOARD="${{ inputs.target_select }}"
-          CONFIG_PATH="/opt/rt-n56u/trunk/configs/boards/$TARGET_BOARD/kernel-4.4.x.config"
-          
-          echo "🎯 Target Board: $TARGET_BOARD"
-          echo "📂 Config Path: $CONFIG_PATH"
-          
-          if [ -f "$CONFIG_PATH" ]; then
-            # 2. 檢查是否已經存在 CAKE 設定
-            if grep -q "CONFIG_NET_SCH_CAKE" "$CONFIG_PATH"; then
-              echo "⚠️ CAKE module is already enabled in config."
-            else
-              echo "🔧 Injecting CAKE module..."
-              
-              # 3. 使用 sed 在 FQ_CODEL 之後插入 CAKE
-              # 如果找不到 FQ_CODEL，則附加到檔案末尾
-              if grep -q "CONFIG_NET_SCH_FQ_CODEL=m" "$CONFIG_PATH"; then
-                sed -i '/CONFIG_NET_SCH_FQ_CODEL=m/a CONFIG_NET_SCH_CAKE=m' "$CONFIG_PATH"
-                echo "✅ Inserted CAKE after FQ_CODEL."
-              else
-                echo "CONFIG_NET_SCH_CAKE=m" >> "$CONFIG_PATH"
-                echo "✅ Appended CAKE to end of file."
-              fi
-            fi
-            
-            # 再次驗證
-            if grep -q "CONFIG_NET_SCH_CAKE=m" "$CONFIG_PATH"; then
-               echo "🎉 CAKE Patch Applied Successfully!"
-               echo "📢 Reminder: When you miss Dave, modprobe sch_cake!"
-            else
-               echo "❌ Error: Failed to apply CAKE patch."
-               exit 1
-            fi
-          else
-            echo "❌ Config file not found at $CONFIG_PATH"
-            echo "   Please check if the directory name matches the target_select option."
-            # 列出目錄供除錯
-            ls -F /opt/rt-n56u/trunk/configs/boards/ || true
-          fi
-          echo "::endgroup::"
-      
-      
       - name: 📝-CORE-Modify-Template-and-Sync-Config
         env:
           RAW_TNAME: ${{ inputs.target_select }}
@@ -1528,6 +1493,122 @@ jobs:
           bash trunk/custom/scripts/setaccount.sh "${{ env.SIGNACCOUNT }}" "${{ env.SIGNPASSWORD }}" trunk/user/shared/defaults.h
           bash trunk/custom/scripts/setwifi.sh "${{ env.WIFI2GSSID }}" "${{ env.WIFI2GPSK }}" "${{ env.WIFI5GSSID }}" "${{ env.WIFI5GPSK }}" trunk/user/shared/defaults.h
 
+      - name: 🌐 Custom Language Selector
+        run: |
+          echo "::group::Setting up WebUI Language (Kernel 4.4)"
+          
+          # 1. 取得參數
+          SELECTED_LANG_OPTION="${{ inputs.language_select }}"
+          TARGET_BOARD="${{ inputs.target_select }}"
+          
+          # Kernel 4.4 (hanwckf) 的 Template 路徑通常在這裡
+          TEMPLATE_DIR="/opt/rt-n56u/trunk/configs/templates"
+          CONFIG_PATH="$TEMPLATE_DIR/$TARGET_BOARD.config"
+          
+          # 解析語言代碼 (例如 "CN (繁體中文)" -> "CN")
+          if [ "$SELECTED_LANG_OPTION" == "English_Only" ]; then
+            LANG_CODE="NONE"
+          else
+            LANG_CODE=$(echo "$SELECTED_LANG_OPTION" | cut -d' ' -f1)
+          fi
+          
+          echo "🎯 Target Board: $TARGET_BOARD"
+          echo "🗣️ Selected Language: $LANG_CODE"
+          echo "📂 Config Path: $CONFIG_PATH"
+          
+          if [ -f "$CONFIG_PATH" ]; then
+            echo "📝 Modifying Config..."
+            
+            # 2. 第一步：強制關閉所有非英文語言 (Reset to English Only)
+            # 邏輯：找到所有 CONFIG_FIRMWARE_INCLUDE_LANG_ 開頭且 =y 的行，加上 # 註解
+            sed -i 's/^CONFIG_FIRMWARE_INCLUDE_LANG_.*=y/#&/' "$CONFIG_PATH"
+            echo "✅ All non-English languages disabled (commented out)."
+            
+            # 3. 第二步：啟用選定的語言
+            if [ "$LANG_CODE" != "NONE" ]; then
+              TARGET_KEY="CONFIG_FIRMWARE_INCLUDE_LANG_$LANG_CODE"
+              
+              # 檢查設定檔中是否有這一行 (無論是被註解還是未註解)
+              if grep -q "$TARGET_KEY" "$CONFIG_PATH"; then
+                # 如果存在 (例如 #CONFIG_FIRMWARE_INCLUDE_LANG_CN=y)，則移除註解並設為 y
+                sed -i "s/^.*$TARGET_KEY.*/$TARGET_KEY=y/" "$CONFIG_PATH"
+                echo "✅ Enabled language: $LANG_CODE"
+              else
+                # 如果完全不存在，則手動加入到檔案末尾
+                echo "$TARGET_KEY=y" >> "$CONFIG_PATH"
+                echo "✅ Appended language config: $LANG_CODE"
+              fi
+            else
+              echo "ℹ️ Keeping English Only."
+            fi
+            
+            # 4. 驗證結果
+            echo "🔍 Final Language Settings in $TARGET_BOARD.config:"
+            grep "CONFIG_FIRMWARE_INCLUDE_LANG_" "$CONFIG_PATH" | grep -v "^#" || echo "(English Only)"
+            
+          else
+            echo "❌ Error: Template config not found at $CONFIG_PATH"
+            echo "   Please check inputs.target_select matches the filename in trunk/configs/templates/"
+            ls -F "$TEMPLATE_DIR" || true
+            exit 1
+          fi
+          echo "::endgroup::"
+      
+      - name: 🕊️ Dave Täht Tribute & CAKE Patch
+        run: |
+          # =======================================================
+          # 🕊️ In Memory of Dave Täht
+          # -------------------------------------------------------
+          # 🇹🇼：靈魂永駐，精神長存
+          # 🇺🇸：May his soul find eternal peace, and his spirit live on forever.
+          #
+          # 📢 SLOGAN: When you miss Dave, modprobe sch_cake!
+          # =======================================================
+          
+          echo "::group::Applying CAKE to Kernel Config"
+          
+          # 1. 取得目標機型的設定檔路徑
+          # 邏輯：trunk/configs/boards/{機型名稱}/kernel-4.4.x.config
+          TARGET_BOARD="${{ inputs.target_select }}"
+          CONFIG_PATH="/opt/rt-n56u/trunk/configs/boards/$TARGET_BOARD/kernel-4.4.x.config"
+          
+          echo "🎯 Target Board: $TARGET_BOARD"
+          echo "📂 Config Path: $CONFIG_PATH"
+          
+          if [ -f "$CONFIG_PATH" ]; then
+            # 2. 檢查是否已經存在 CAKE 設定
+            if grep -q "CONFIG_NET_SCH_CAKE" "$CONFIG_PATH"; then
+              echo "⚠️ CAKE module is already enabled in config."
+            else
+              echo "🔧 Injecting CAKE module..."
+              
+              # 3. 使用 sed 在 FQ_CODEL 之後插入 CAKE
+              # 如果找不到 FQ_CODEL，則附加到檔案末尾
+              if grep -q "CONFIG_NET_SCH_FQ_CODEL=m" "$CONFIG_PATH"; then
+                sed -i '/CONFIG_NET_SCH_FQ_CODEL=m/a CONFIG_NET_SCH_CAKE=m' "$CONFIG_PATH"
+                echo "✅ Inserted CAKE after FQ_CODEL."
+              else
+                echo "CONFIG_NET_SCH_CAKE=m" >> "$CONFIG_PATH"
+                echo "✅ Appended CAKE to end of file."
+              fi
+            fi
+            
+            # 再次驗證
+            if grep -q "CONFIG_NET_SCH_CAKE=m" "$CONFIG_PATH"; then
+               echo "🎉 CAKE Patch Applied Successfully!"
+               echo "📢 Reminder: When you miss Dave, modprobe sch_cake!"
+            else
+               echo "❌ Error: Failed to apply CAKE patch."
+               exit 1
+            fi
+          else
+            echo "❌ Config file not found at $CONFIG_PATH"
+            echo "   Please check if the directory name matches the target_select option."
+            # 列出目錄供除錯
+            ls -F /opt/rt-n56u/trunk/configs/boards/ || true
+          fi
+          echo "::endgroup::"
+            
       - name: 🏗️-Build-Firmware
         run: |
           cd /opt/rt-n56u/trunk
