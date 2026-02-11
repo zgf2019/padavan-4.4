@@ -14,6 +14,18 @@ on:
           - MI-R3G
           - NEWIFI3
           - RM2100
+          # 新增支援清單 (基於 trunk/configs/boards)
+          - CR660x
+          - DIR-878
+          - DIR-882
+          - JCG-836PRO
+          - JCG-AC860M
+          - JCG-Q20
+          - JCG-Y2
+          - MI-R3P
+          - MR2600
+          - NETGEAR-BZV
+          - XY-C1
         default: K2P
 
       nanoversion:
@@ -1378,6 +1390,62 @@ jobs:
           sudo rm -rf /toolchain-4.4.x
           sudo ln -s "$TOOLCHAIN_DIR" /toolchain-4.4.x
 
+      - name: 🕊️-Dave-Täht-Tribute-&-CAKE-Patch
+        run: |
+          # =======================================================
+          # 🕊️ In Memory of Dave Täht
+          # -------------------------------------------------------
+          # 🇹🇼：靈魂永駐，精神長存
+          # 🇺🇸：May his soul find eternal peace, and his spirit live on forever.
+          #
+          # 📢 SLOGAN: When you miss Dave, modprobe sch_cake!
+          # =======================================================
+          
+          echo "::group::Applying CAKE to Kernel Config"
+          
+          # 1. 取得目標機型的設定檔路徑
+          # 邏輯：trunk/configs/boards/{機型名稱}/kernel-4.4.x.config
+          TARGET_BOARD="${{ inputs.target_select }}"
+          CONFIG_PATH="/opt/rt-n56u/trunk/configs/boards/$TARGET_BOARD/kernel-4.4.x.config"
+          
+          echo "🎯 Target Board: $TARGET_BOARD"
+          echo "📂 Config Path: $CONFIG_PATH"
+          
+          if [ -f "$CONFIG_PATH" ]; then
+            # 2. 檢查是否已經存在 CAKE 設定
+            if grep -q "CONFIG_NET_SCH_CAKE" "$CONFIG_PATH"; then
+              echo "⚠️ CAKE module is already enabled in config."
+            else
+              echo "🔧 Injecting CAKE module..."
+              
+              # 3. 使用 sed 在 FQ_CODEL 之後插入 CAKE
+              # 如果找不到 FQ_CODEL，則附加到檔案末尾
+              if grep -q "CONFIG_NET_SCH_FQ_CODEL=m" "$CONFIG_PATH"; then
+                sed -i '/CONFIG_NET_SCH_FQ_CODEL=m/a CONFIG_NET_SCH_CAKE=m' "$CONFIG_PATH"
+                echo "✅ Inserted CAKE after FQ_CODEL."
+              else
+                echo "CONFIG_NET_SCH_CAKE=m" >> "$CONFIG_PATH"
+                echo "✅ Appended CAKE to end of file."
+              fi
+            fi
+            
+            # 再次驗證
+            if grep -q "CONFIG_NET_SCH_CAKE=m" "$CONFIG_PATH"; then
+               echo "🎉 CAKE Patch Applied Successfully!"
+               echo "📢 Reminder: When you miss Dave, modprobe sch_cake!"
+            else
+               echo "❌ Error: Failed to apply CAKE patch."
+               exit 1
+            fi
+          else
+            echo "❌ Config file not found at $CONFIG_PATH"
+            echo "   Please check if the directory name matches the target_select option."
+            # 列出目錄供除錯
+            ls -F /opt/rt-n56u/trunk/configs/boards/ || true
+          fi
+          echo "::endgroup::"
+      
+      
       - name: 📝-CORE-Modify-Template-and-Sync-Config
         env:
           RAW_TNAME: ${{ inputs.target_select }}
