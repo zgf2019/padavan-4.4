@@ -458,7 +458,7 @@
         document.addEventListener("DOMContentLoaded", function() {
             document.querySelectorAll('.markdown-body h1, .markdown-body h2, .markdown-body h3').forEach(function(heading) {
                 heading.classList.add('gradient-text');
-                heading.innerHTML = heading.innerHTML.replace(/(\p{Emoji_Presentation})/gu, '<span class="emoji">$1</span>');
+                heading.innerHTML = heading.innerHTML.replace(/(\p{Emoji_Presentation}|\p{Extended_Pictographic})\uFE0F?/gu, '<span class="emoji">$1</span>');
             });
             document.querySelectorAll('.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6').forEach(function(heading) {
                 if (heading.id && !heading.querySelector('.anchor')) {
@@ -473,8 +473,10 @@
             });
             const keywords = ["Dave Täht", "Täht", "Dave", "Michael", "dtaht", "@mtaht", "Dave’s Guitar", "星塵", "星星", "星辰", "Starstuff", "Star"];
             const escapedKw = keywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).sort((a, b) => b.length - a.length);
-            const searchRegex = new RegExp("(" + escapedKw.join("|") + ")", "gi");
-            const testRegex = new RegExp("(" + escapedKw.join("|") + ")", "i");
+            const boundaryPrefix = "(?<![a-zA-Z0-9])";
+            const boundarySuffix = "(?![a-zA-Z0-9])";
+            const searchRegex = new RegExp(boundaryPrefix + "(" + escapedKw.join("|") + ")" + boundarySuffix, "gi");
+            const testRegex = new RegExp(boundaryPrefix + "(" + escapedKw.join("|") + ")" + boundarySuffix, "i");
             const matchRegex = new RegExp("^(" + escapedKw.join("|") + ")$", "i");
             const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
                 acceptNode: function(node) {
