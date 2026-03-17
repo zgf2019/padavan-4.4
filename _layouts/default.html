@@ -431,9 +431,9 @@
         document.addEventListener("DOMContentLoaded", function() {
             document.querySelectorAll('.markdown-body h1, .markdown-body h2, .markdown-body h3').forEach(function(heading) {
                 heading.classList.add('gradient-text');
+                heading.innerHTML = heading.innerHTML.replace(/(\p{Emoji_Presentation})/gu, '<span class="emoji">$1</span>');
             });
             document.querySelectorAll('.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6').forEach(function(heading) {
-                // 修正1: 加上 !heading.querySelector('.anchor') 防止重複產生錨點
                 if (heading.id && !heading.querySelector('.anchor')) {
                     heading.classList.add('heading-with-anchor');
                     let anchor = document.createElement('a');
@@ -451,8 +451,7 @@
             const matchRegex = new RegExp("^(" + escapedKw.join("|") + ")$", "i");
             const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
                 acceptNode: function(node) {
-                    // 修正2: 加上 !node.parentNode 檢查，防止腳本因為讀取空節點的 classList 報錯崩潰
-                    if (!node.parentNode) return NodeFilter.FILTER_REJECT; 
+                    if (!node.parentNode) return NodeFilter.FILTER_REJECT;
                     if (node.parentNode.classList && node.parentNode.classList.contains('glow-text')) return NodeFilter.FILTER_REJECT;
                     if (['SCRIPT', 'STYLE', 'TITLE', 'NOSCRIPT'].includes(node.parentNode.nodeName)) return NodeFilter.FILTER_REJECT;
                     if (testRegex.test(node.nodeValue)) return NodeFilter.FILTER_ACCEPT;
@@ -465,8 +464,7 @@
                 nodesToReplace.push(currentNode);
             }
             nodesToReplace.forEach(node => {
-                // 修正3: 在替換節點前確認父節點存在，確保 replaceChild 順利執行
-                if (!node.parentNode) return; 
+                if (!node.parentNode) return;
                 const fragment = document.createDocumentFragment();
                 const parts = node.nodeValue.split(searchRegex);
                 parts.forEach(part => {
