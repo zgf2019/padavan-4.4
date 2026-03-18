@@ -346,8 +346,8 @@
         @keyframes starTwinkleDark { 0%, 100% { opacity: 1; text-shadow: 0 0 10px rgba(88, 166, 255, 0.6), 0 0 20px rgba(88, 166, 255, 0.2); } 25% { opacity: 0.8; text-shadow: 0 0 12px rgba(88, 166, 255, 0.8), 0 0 24px rgba(88, 166, 255, 0.4); } }
         a.gradient-text:hover, .gradient-text:hover { animation: flowGradient 2.5s linear infinite !important; filter: brightness(1.15) drop-shadow(0 0 6px rgba(253, 145, 121, 0.4)); }
         @keyframes flowGradient { 0% { background-position: 0% 20%; } 100% { background-position: 200% 20%; } }
-        .emoji { display: inline-block !important; vertical-align: middle !important; isolation: isolate !important; background: none !important; -webkit-background-clip: border-box !important; -webkit-text-fill-color: initial !important; -webkit-text-stroke: 0 !important; text-stroke: 0 !important; color: #24292f !important; }
-        [data-theme="dark"] .emoji { color: #c9d1d9 !important; }
+        .emoji { -webkit-text-fill-color: initial !important; background: none !important; color: initial !important; }
+        .emoji-WinOS { -webkit-text-fill-color: currentColor !important; background: none !important; color: currentColor !important; }
         html { position: relative; min-height: 100%; }
         html::after { content: ""; position: absolute; bottom: 0; left: 0; width: 100%; height: 12px; background-image: linear-gradient(94.23deg, var(--color-nebula-1) 0%, var(--color-nebula-1) 12.41%, var(--color-nebula-2) 52.55%, var(--color-nebula-3) 89.95%, var(--color-nebula-1) 100%); background-size: 200% auto; animation: flowGradient 4.1s linear infinite; z-index: 2025; transition: height 0.5s cubic-bezier(.16,1,.3,1), filter 0.8s cubic-bezier(.16,1,.3,1); pointer-events: none; }
         html:hover::after { height: 18px; animation: flowGradient 2.5s linear infinite; filter: brightness(1.4) drop-shadow(0 -8px 20px rgba(253, 145, 121, 0.8)) drop-shadow(0 -15px 40px rgba(255, 105, 105, 0.6)) drop-shadow(0 -25px 60px rgba(83, 116, 250, 0.5)); }
@@ -358,7 +358,7 @@
 
     <header class="header-section">
         <h1>
-            <a href="./" style="color: inherit; text-decoration: none; font-size: inherit; font-weight: inherit;"><span class="emoji">🇹🇼 </span><span class="gradient-text">{{ site.title }}</span></a>
+            <a href="./" style="color: inherit; text-decoration: none; font-size: inherit; font-weight: inherit;"><span class="emoji-WinOS">🇹🇼</span> <span class="gradient-text">{{ site.title }}</span></a>
         </h1>
         <p>{{ site.description }}</p>
         <div style="margin-top: 20px; display: flex; justify-content: center; flex-wrap: wrap; gap: 12px;">
