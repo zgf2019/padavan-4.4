@@ -1417,7 +1417,7 @@ jobs:
           NANO_OPT: ${{ inputs.nanoversion }}
           TOOLCHAIN_CHOICE: ${{ inputs.toolchain_select }}
         run: |
-          TEMPLATE_DIR="/rt-n56u/trunk/configs/templates"
+          TEMPLATE_DIR="/opt/rt-n56u/trunk/configs/templates"
           TRUNK_CONFIG="/opt/rt-n56u/trunk/.config"
           
           PATTERN_A=$(echo "$RAW_TNAME" | sed 's/-/_/g')
@@ -1502,7 +1502,7 @@ jobs:
           TARGET_BOARD="${{ inputs.target_select }}"
           
           # Kernel 4.4 (hanwckf) 的 Template 路徑通常在這裡
-          TEMPLATE_DIR="/rt-n56u/trunk/configs/templates"
+          TEMPLATE_DIR="/opt/rt-n56u/trunk/configs/templates"
           CONFIG_PATH="$TEMPLATE_DIR/$TARGET_BOARD.config"
           
           # 解析語言代碼 (例如 "CN (繁體中文)" -> "CN")
